@@ -4,9 +4,9 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import fun.milkyway.milkypixelart.MilkyPixelart;
 import fun.milkyway.milkypixelart.listeners.*;
-import fun.milkyway.milkypixelart.utils.ActiveFrame;
-import fun.milkyway.milkypixelart.utils.Utils;
-import fun.milkyway.milkypixelart.utils.Versions;
+import fun.milkyway.milkypixelart.utils.BundleArt;
+import fun.milkyway.milkypixelart.utils.MaterialUtils;
+import fun.milkyway.milkypixelart.utils.OrientationUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -20,7 +20,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.GlowItemFrame;
+import org.bukkit.entity.Hanging;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -43,7 +46,6 @@ public class PixelartManager extends ArtManager {
     private static final NamespacedKey PREVIEW_ART_KEY = new NamespacedKey(MilkyPixelart.getInstance(), "previewArt");
     private static PixelartManager instance;
 
-    private final Random random;
     private final ThreadPoolExecutor executorService;
 
     private final Map<Integer, UUID> blackList;
@@ -58,7 +60,6 @@ public class PixelartManager extends ArtManager {
         executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         executorService.setMaximumPoolSize(2);
 
-        random = new Random();
         blackList = new ConcurrentHashMap<>();
         lastMapShownTime = new HashMap<>();
         previewArts = new HashMap<>();
@@ -87,8 +88,7 @@ public class PixelartManager extends ArtManager {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 getInstance().shutdown();
-            }
-            catch (Exception exception) {
+            } catch (Exception exception) {
                 MilkyPixelart.getInstance().getLogger().log(Level.WARNING, exception.getMessage(), exception);
                 result.completeExceptionally(exception);
             }
@@ -134,21 +134,19 @@ public class PixelartManager extends ArtManager {
     public void showMaps(@NotNull Player player, boolean all, boolean local) {
         long cooldown = getShowCooldown(player.getUniqueId());
         if (cooldown > 0 && !player.hasPermission("pixelart.show.cooldownbypass")) {
-            player.sendMessage(LangManager.getInstance().getLang("show.fail_cooldown", ""+cooldown));
+            player.sendMessage(LangManager.getInstance().getLang("show.fail_cooldown", "" + cooldown));
             return;
         }
         Component component;
         if (all) {
             component = buildAllMapsComponent(player);
-        }
-        else {
+        } else {
             component = buildSingleMapComponent(player);
         }
         if (component == null) {
             if (all) {
                 player.sendMessage(LangManager.getInstance().getLang("show.fail_no_in_toolbar"));
-            }
-            else {
+            } else {
                 player.sendMessage(LangManager.getInstance().getLang("show.fail_no_map"));
             }
             return;
@@ -159,8 +157,7 @@ public class PixelartManager extends ArtManager {
             player.getLocation().getNearbyPlayers(100).forEach(p -> {
                 p.sendMessage(message);
             });
-        }
-        else {
+        } else {
             MilkyPixelart.getInstance().getServer().broadcast(message, "pixelart.preview");
         }
         putOnCooldown(player.getUniqueId());
@@ -226,13 +223,12 @@ public class PixelartManager extends ArtManager {
             var displayName = itemMeta.displayName();
             if (displayName != null) {
                 builder.append(LangManager.getInstance().getLang("show.map_component",
-                        uuid+"",
+                        uuid + "",
                         PlainTextComponentSerializer.plainText().serialize(displayName)));
             }
-        }
-        else {
+        } else {
             builder.append(LangManager.getInstance().getLang("show.map_component",
-                    uuid+"",
+                    uuid + "",
                     LangManager.getInstance().getLangPlain("show.map_default_name")));
         }
         builder.hoverEvent(HoverEvent.showText(LangManager.getInstance().getLang("show.click_to_preview", name)));
@@ -283,38 +279,29 @@ public class PixelartManager extends ArtManager {
                     glowItemFrame.setFacingDirection(face, true);
                     glowItemFrame.getPersistentDataContainer().set(PREVIEW_ART_KEY, PersistentDataType.BYTE, (byte) 1);
                 });
-            }).filter(Objects::nonNull).toList();
+            }).filter(Objects::nonNull).map(f -> (Entity) f).toList();
 
-            MilkyPixelart.getInstance().getServer().getAsyncScheduler().runAtFixedRate(MilkyPixelart.getInstance(), task -> {
-                itemFrames.forEach(entity -> {
-                    if (entity.isValid()) {
-                        entity.remove();
-                    }
-                });
-            }, MilkyPixelart.getInstance().getConfig().getInt("pixelarts.previewDuration", 100));
+            MilkyPixelart.getInstance().getServer().getScheduler().runTaskLater(MilkyPixelart.getInstance(), () -> itemFrames.forEach(entity -> {
+                if (entity.isValid()) {
+                    entity.remove();
+                }
+            }), MilkyPixelart.getInstance().getConfig().getInt("pixelarts.previewDuration", 100));
 
             MilkyPixelart.getInstance().getServer().getOnlinePlayers().forEach(p -> {
                 if (p.getUniqueId() == player.getUniqueId()) {
                     // do not hide for self
                     return;
                 }
-                itemFrames.forEach(itemFrame -> {
-                    p.hideEntity(MilkyPixelart.getInstance(), itemFrame);
-                });
+                itemFrames.forEach(itemFrame -> p.hideEntity(MilkyPixelart.getInstance(), itemFrame));
             });
 
             previewArts.put(player.getUniqueId(), itemFrames);
-
         });
         return true;
     }
 
     public void hidePreviewArts(@NotNull Player player) {
-        previewArts.values().forEach(itemFrames -> {
-            itemFrames.forEach(itemFrame -> {
-                player.hideEntity(MilkyPixelart.getInstance(), itemFrame);
-            });
-        });
+        previewArts.values().forEach(itemFrames -> itemFrames.forEach(itemFrame -> player.hideEntity(MilkyPixelart.getInstance(), itemFrame)));
     }
 
     public void clearPreviewArts(@NotNull UUID playerUuid) {
@@ -340,7 +327,6 @@ public class PixelartManager extends ArtManager {
         return mapDataDirectory;
     }
 
-
     private byte[] getMapBytesFromFile(@NotNull File file) {
         if (!file.exists() || !file.canRead() || !file.isFile()) {
             return null;
@@ -354,68 +340,68 @@ public class PixelartManager extends ArtManager {
             byte[] colors = data.getByteArray("colors");
             System.arraycopy(colors, 0, arr, 0, colors.length);
             return arr;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, e.getMessage(), e);
             return null;
         }
     }
 
     private byte[] getMapBytesOffline(int id) {
-        File mapFile = new File(getMapsDirectory(), "map_"+id+".dat");
+        File mapFile = new File(getMapsDirectory(), "map_" + id + ".dat");
         return getMapBytesFromFile(mapFile);
     }
 
     public CompletableFuture<List<String>> getDuplicates(@NotNull CommandSender commandSender, int mapId) {
 
-        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
-        CompletableFuture<List<String>> finalResult = new CompletableFuture<>();
+        CompletableFuture<List<String>> finalResult;
+        try (ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2)) {
+            finalResult = new CompletableFuture<>();
 
-        threadPoolExecutor.submit(() -> {
+            threadPoolExecutor.submit(() -> {
 
-            byte[] originalBytes = getMapBytesOffline(mapId);
+                byte[] originalBytes = getMapBytesOffline(mapId);
 
-            if (originalBytes != null) {
+                if (originalBytes != null) {
 
-                File dataDirectory = getMapsDirectory();
-                File[] files = dataDirectory.listFiles();
+                    File dataDirectory = getMapsDirectory();
+                    File[] files = dataDirectory.listFiles();
 
-                if (files != null) {
-                    commandSender.sendMessage(LangManager.getInstance().getLang("scan.files_found", files.length+""));
+                    if (files != null) {
+                        commandSender.sendMessage(LangManager.getInstance().getLang("scan.files_found", files.length + ""));
 
-                    AtomicInteger count = new AtomicInteger(0);
-                    List<String> resultList = Collections.synchronizedList(new ArrayList<>());
-                    CompletableFuture[] tasks = new CompletableFuture[files.length];
+                        AtomicInteger count = new AtomicInteger(0);
+                        List<String> resultList = Collections.synchronizedList(new ArrayList<>());
+                        CompletableFuture[] tasks = new CompletableFuture[files.length];
 
-                    for (int i = 0; i < files.length; i++) {
-                        File file = files[i];
-                        tasks[i] = CompletableFuture.runAsync(() -> {
-                            if (!file.getName().startsWith("map")) {
-                                return;
-                            }
-                            byte[] otherBytes = getMapBytesFromFile(file);
-                            int countUnboxed = count.getAndIncrement();
-                            if (otherBytes != null && Arrays.equals(originalBytes, otherBytes))
-                                resultList.add(file.getName());
-                            if (commandSender instanceof Player player) {
-                                Player freshPlayer = plugin.getServer().getPlayer(player.getUniqueId());
-                                if ( freshPlayer != null &&
-                                        freshPlayer.isOnline() &&
-                                        countUnboxed % 1000 == 0) {
-                                    commandSender.sendMessage(LangManager.getInstance().getLang("scan.files_scanned", count+""));
+                        for (int i = 0; i < files.length; i++) {
+                            File file = files[i];
+                            tasks[i] = CompletableFuture.runAsync(() -> {
+                                if (!file.getName().startsWith("map")) {
+                                    return;
                                 }
-                            }
-                        }, threadPoolExecutor);
+                                byte[] otherBytes = getMapBytesFromFile(file);
+                                int countUnboxed = count.getAndIncrement();
+                                if (otherBytes != null && Arrays.equals(originalBytes, otherBytes))
+                                    resultList.add(file.getName());
+                                if (commandSender instanceof Player player) {
+                                    Player freshPlayer = plugin.getServer().getPlayer(player.getUniqueId());
+                                    if (freshPlayer != null &&
+                                            freshPlayer.isOnline() &&
+                                            countUnboxed % 1000 == 0) {
+                                        commandSender.sendMessage(LangManager.getInstance().getLang("scan.files_scanned", count + ""));
+                                    }
+                                }
+                            }, threadPoolExecutor);
+                        }
+
+                        CompletableFuture.allOf(tasks).thenRun(() -> finalResult.complete(resultList));
                     }
 
-                    CompletableFuture.allOf(tasks).thenRun(() -> finalResult.complete(resultList));
+                } else {
+                    commandSender.sendMessage(LangManager.getInstance().getLang("scan.fail_no_map"));
                 }
-
-            }
-            else {
-                commandSender.sendMessage(LangManager.getInstance().getLang("scan.fail_no_map"));
-            }
-        });
+            });
+        }
 
         return finalResult;
     }
@@ -426,10 +412,10 @@ public class PixelartManager extends ArtManager {
 
         int count = 0;
         for (Map.Entry<Integer, UUID> entry : blackList.entrySet()) {
-            fileConfiguration.set("blacklist."+entry.getKey(), entry.getValue().toString());
+            fileConfiguration.set("blacklist." + entry.getKey(), entry.getValue().toString());
             count++;
         }
-        plugin.getLogger().info(ChatColor.GREEN+"Saved "+count+" blacklist entries into the savefile!");
+        plugin.getLogger().info(ChatColor.GREEN + "Saved " + count + " blacklist entries into the savefile!");
 
         try {
             fileConfiguration.save(new File(plugin.getDataFolder(), BLACKLIST_FILENAME));
@@ -446,14 +432,14 @@ public class PixelartManager extends ArtManager {
         int count = 0;
         if (configurationSection != null) {
             for (String key : configurationSection.getKeys(false)) {
-                String uuidString = fileConfiguration.getString("blacklist."+key);
+                String uuidString = fileConfiguration.getString("blacklist." + key);
                 if (uuidString != null) {
                     blackList.put(Integer.parseInt(key), UUID.fromString(uuidString));
                     count++;
                 }
             }
         }
-        plugin.getLogger().info(ChatColor.GREEN+"Loaded "+count+" blacklist entries from the savefile!");
+        plugin.getLogger().info(ChatColor.GREEN + "Loaded " + count + " blacklist entries from the savefile!");
     }
 
     public void blacklistAdd(int mapId, @NotNull UUID ownerUUID) {
@@ -464,7 +450,7 @@ public class PixelartManager extends ArtManager {
         });
     }
 
-    public @Nullable  UUID blacklistRemove(int mapId) {
+    public @Nullable UUID blacklistRemove(int mapId) {
         UUID uuid = blackList.remove(mapId);
         if (uuid != null)
             saveBlacklistAsync().thenAccept(exception -> {
@@ -475,7 +461,7 @@ public class PixelartManager extends ArtManager {
     }
 
     private CompletableFuture<IOException> saveBlacklistAsync() {
-        plugin.getLogger().info(ChatColor.YELLOW+"Async save blacklist...");
+        plugin.getLogger().info(ChatColor.YELLOW + "Async save blacklist...");
         CompletableFuture<IOException> completableFuture = new CompletableFuture<>();
         executorService.submit(() -> {
             saveBlacklist();
@@ -491,18 +477,18 @@ public class PixelartManager extends ArtManager {
     public boolean isLegitimateOwner(@NotNull ItemStack map) {
         CopyrightManager.Author author = CopyrightManager.getInstance().getAuthor(map);
         if (!(map.getItemMeta() instanceof MapMeta)) {
-            return true;
+            return false;
         }
         if (!((MapMeta) map.getItemMeta()).hasMapView()) {
-            return true;
+            return false;
         }
         MapView mapView = ((MapMeta) map.getItemMeta()).getMapView();
 
         if (mapView == null) {
-            return true;
+            return false;
         }
 
-        return isLegitimateOwner(mapView.getId(), author);
+        return !isLegitimateOwner(mapView.getId(), author);
     }
 
     public boolean isLegitimateOwner(int mapId, @Nullable CopyrightManager.Author author) {

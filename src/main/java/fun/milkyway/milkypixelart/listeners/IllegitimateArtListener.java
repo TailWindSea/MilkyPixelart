@@ -31,7 +31,7 @@ public class IllegitimateArtListener implements Listener {
         if (entity instanceof ItemFrame itemFrame) {
             ItemStack itemStack = itemFrame.getItem();
             if (itemStack.getType().equals(Material.FILLED_MAP)) {
-                if (!pixelartManager.isLegitimateOwner(itemStack)) {
+                if (pixelartManager.isLegitimateOwner(itemStack)) {
                     itemFrame.setItem(null);
                     MilkyPixelart.getInstance().getLogger().info(ChatColor.DARK_GREEN + "Removed an illegitimate pixelart at: " + itemFrame.getLocation());
                     plugin.getLogger().info(ChatColor.DARK_GREEN + "Map id: " + pixelartManager.getMapId(itemStack));
@@ -46,7 +46,7 @@ public class IllegitimateArtListener implements Listener {
         if (event.getPlayer() instanceof Player player) {
             HashMap<Integer, ? extends ItemStack> map = event.getInventory().all(Material.FILLED_MAP);
             for (Map.Entry<Integer, ? extends ItemStack> entry : map.entrySet()) {
-                if (!pixelartManager.isLegitimateOwner(entry.getValue())) {
+                if (pixelartManager.isLegitimateOwner(entry.getValue())) {
                     event.getInventory().clear(entry.getKey());
                     if (event.getInventory().getLocation() != null) {
                         plugin.getLogger().info(ChatColor.DARK_GREEN + "Removed an illegitimate pixelart at: " + event.getInventory().getLocation());
