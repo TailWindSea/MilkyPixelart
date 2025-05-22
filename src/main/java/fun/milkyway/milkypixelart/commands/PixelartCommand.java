@@ -169,10 +169,10 @@ public class PixelartCommand extends BaseCommand {
 
     @Subcommand("blacklist")
     @CommandPermission("pixelart.blacklist")
-    public static class BlacklistCommands extends BaseCommand{
+    public class BlacklistCommands extends BaseCommand {
 
         public BlacklistCommands() {
-
+            // Constructor
         }
 
         @Subcommand("add")
