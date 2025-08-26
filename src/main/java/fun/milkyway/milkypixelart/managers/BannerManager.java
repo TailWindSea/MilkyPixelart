@@ -4,16 +4,15 @@ import fun.milkyway.milkypixelart.MilkyPixelart;
 import fun.milkyway.milkypixelart.listeners.BannerPaintListener;
 import fun.milkyway.milkypixelart.listeners.BannerProtectionListener;
 import fun.milkyway.milkypixelart.utils.BannerUtils;
+import fun.milkyway.milkypixelart.utils.SchedulerUtils;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
-import org.bukkit.Registry;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.banner.Pattern;
@@ -308,7 +307,7 @@ public class BannerManager extends ArtManager {
         unregisterListeners();
         for (InventoryView inventoryView : bannerEditorMenus.keySet()) {
             if (MilkyPixelart.getInstance().isEnabled()) {
-                Bukkit.getAsyncScheduler().runNow(MilkyPixelart.getInstance(), t -> inventoryView.getPlayer().closeInventory());
+                SchedulerUtils.runTask(null, () -> inventoryView.getPlayer().closeInventory());
             }
         }
     }
