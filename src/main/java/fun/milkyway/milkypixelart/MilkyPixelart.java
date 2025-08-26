@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 public final class MilkyPixelart extends JavaPlugin {
+
     private static MilkyPixelart instance;
     private static boolean usingFolia;
     private Economy economy;
