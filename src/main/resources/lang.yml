@@ -14,6 +14,7 @@ show:
 preview:
   success: "<#9AFF0F>Previewing the pixel art."
   fail: "<#FF995E>Failed to preview the pixel art."
+  expired: "<#FF995E>Failed to preview the pixel art. Preview expired?"
 protect:
   fail_should_hold: "<#FF995E>You should hold pixel art map or a banner in your hand!"
   fail_already_protected: "<#FF995E>This item is already protected!"

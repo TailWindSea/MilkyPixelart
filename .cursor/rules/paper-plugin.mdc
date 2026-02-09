@@ -1,0 +1,16 @@
+---
+alwaysApply: true
+---
+This is a minecraft plugin that allows players to protect their pixel arts (made with map items)
+and unique banners with copy protection. It also allows to preview maps from any shop GUI by just
+right clicking on it by creating temporary indestructible item frames.
+
+Additional feature is banner editing, which allows to bypass limit of patterns on one banner.
+
+Javadocs: https://jd.papermc.io/paper/1.21.1/index.html
+
+Plugin has localization (lang.yml and lang_(lang).yml) and uses Minimessage format for all fomatting.
+
+Be eager and DO check JavaDocs for classes and interfaces of objects that you work with when you write new code to avoid outdated and deprecated methods. Please DO you browser if regular search does not find needed JavaDocs.
+
+ALWAYS run maven package when you done with your work to verify compilation and let me test right away.

@@ -138,7 +138,9 @@ public class PixelartCommand extends BaseCommand {
     @Subcommand("preview")
     @CommandCompletion("map_id")
     public void onPreview(Player player, String mapUuid) {
-        PixelartManager.getInstance().renderBundle(player, UUID.fromString(mapUuid));
+        if (!PixelartManager.getInstance().renderBundle(player, UUID.fromString(mapUuid))) {
+            player.sendMessage(LangManager.getInstance().getLang("preview.expired"));
+        }
     }
 
     @CommandPermission("pixelart.show")
