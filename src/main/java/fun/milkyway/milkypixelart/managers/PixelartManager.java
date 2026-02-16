@@ -8,7 +8,6 @@ import fun.milkyway.milkypixelart.utils.BundleArt;
 import fun.milkyway.milkypixelart.utils.MaterialUtils;
 import fun.milkyway.milkypixelart.utils.DelegatingMapRenderer;
 import fun.milkyway.milkypixelart.utils.OrientationUtils;
-import fun.milkyway.milkypixelart.utils.SchedulerUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -289,17 +288,16 @@ public class PixelartManager extends ArtManager {
             });
         }).filter(Objects::nonNull).map(f -> (Entity) f).toList();
 
-            MilkyPixelart.getInstance().getServer().getOnlinePlayers().forEach(p -> {
-                if (p.getUniqueId() == player.getUniqueId()) {
-                    // do not hide for self
-                    return;
-                }
-                itemFrames.forEach(itemFrame -> p.hideEntity(MilkyPixelart.getInstance(), itemFrame));
-            });
-
-            previewArts.put(player.getUniqueId(), itemFrames);
+        MilkyPixelart.getInstance().getServer().getOnlinePlayers().forEach(p -> {
+            if (p.getUniqueId() == player.getUniqueId()) {
+                // do not hide for self
+                return;
+            }
+            itemFrames.forEach(itemFrame -> p.hideEntity(MilkyPixelart.getInstance(), itemFrame));
         });
-        return true;
+
+        previewArts.put(player.getUniqueId(), itemFrames);
+        return false;
     }
 
     public void hidePreviewArts(@NotNull Player player) {
