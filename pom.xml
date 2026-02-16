@@ -6,7 +6,7 @@
 
     <groupId>fun.milkyway</groupId>
     <artifactId>MilkyPixelart</artifactId>
-    <version>2.9.0</version>
+    <version>2.10.0</version>
     <packaging>jar</packaging>
 
     <name>MilkyPixelart-Folia</name>
@@ -131,4 +131,40 @@
             <version>6.1</version>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>local-deploy</id>
+            <activation>
+                <property>
+                    <name>!env.CI</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>copy-to-server</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <copy file="${project.build.directory}/${project.artifactId}-${project.version}.jar"
+                                              todir="D:/minecraft_dev/milky-2025/plugins/update"
+                                              overwrite="true"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

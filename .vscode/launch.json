@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Remote Debug Minecraft (25564)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 25564,
+            "projectName": "MilkyPixelart"
+        }
+    ]
+}

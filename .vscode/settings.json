@@ -1,0 +1,11 @@
+{
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "C:\\Program Files\\Amazon Corretto\\jdk21.0.3_9",
+            "default": true
+        }
+    ],
+    "java.jdt.ls.java.home": "C:\\Program Files\\Amazon Corretto\\jdk21.0.3_9",
+    "java.configuration.updateBuildConfiguration": "interactive"
+}

@@ -6,6 +6,7 @@ import fun.milkyway.milkypixelart.MilkyPixelart;
 import fun.milkyway.milkypixelart.listeners.*;
 import fun.milkyway.milkypixelart.utils.BundleArt;
 import fun.milkyway.milkypixelart.utils.MaterialUtils;
+import fun.milkyway.milkypixelart.utils.DelegatingMapRenderer;
 import fun.milkyway.milkypixelart.utils.OrientationUtils;
 import fun.milkyway.milkypixelart.utils.SchedulerUtils;
 import net.kyori.adventure.text.Component;
@@ -257,38 +258,36 @@ public class PixelartManager extends ArtManager {
     public boolean renderArts(@NotNull Player player, @NotNull List<ItemStack> stacks, int width, int height) {
         var playerUuid = player.getUniqueId();
         clearPreviewArts(playerUuid);
-        Bukkit.getAsyncScheduler().runNow(MilkyPixelart.getInstance(), t -> {
 
-            var face = OrientationUtils.calculateOpositeBlockFace(player.getLocation().getYaw());
-            var grid = OrientationUtils.calculateGridInFrontOfPlayer(player.getLocation(), 2, width, height);
+        var face = OrientationUtils.calculateOpositeBlockFace(player.getLocation().getYaw());
+        var grid = OrientationUtils.calculateGridInFrontOfPlayer(player.getLocation(), 2, width, height);
+        var world = player.getWorld();
 
-            var itemFrames = IntStream.range(0, grid.size()).mapToObj(i -> {
-                var stack = stacks.get(i);
-                var location = grid.get(i);
-                if (MilkyPixelart.getInstance().getConfig().getBoolean("pixelarts.preventOverlapDisplay", true)) {
-                    var otherHanging = location.getNearbyEntitiesByType(Hanging.class, 1.01);
-                    if (otherHanging.stream().anyMatch(hanging -> !hanging.getPersistentDataContainer().has(PREVIEW_ART_KEY))) {
-                        return null;
-                    }
+        var itemFrames = IntStream.range(0, grid.size()).mapToObj(i -> {
+            var stack = stacks.get(i);
+            var location = grid.get(i);
+            if (MilkyPixelart.getInstance().getConfig().getBoolean("pixelarts.preventOverlapDisplay", true)) {
+                var otherHanging = location.getNearbyEntitiesByType(Hanging.class, 1.01);
+                if (otherHanging.stream().anyMatch(hanging -> !hanging.getPersistentDataContainer().has(PREVIEW_ART_KEY))) {
+                    return null;
                 }
-                return player.getWorld().spawn(location, GlowItemFrame.class, glowItemFrame -> {
-                    glowItemFrame.setPersistent(false);
-                    glowItemFrame.setInvulnerable(true);
-                    glowItemFrame.setFixed(true);
-                    glowItemFrame.setItem(stack, false);
-                    glowItemFrame.setVisible(false);
-                    glowItemFrame.setFacingDirection(face, true);
-                    glowItemFrame.getPersistentDataContainer().set(PREVIEW_ART_KEY, PersistentDataType.BYTE, (byte) 1);
-                });
-            }).filter(Objects::nonNull).map(f -> (Entity) f).toList();
-
-            SchedulerUtils.runTaskLater(player.getLocation(), () -> {
-                itemFrames.forEach(entity -> {
-                    if (entity.isValid()) {
-                        entity.remove();
-                    }
-                });
-            }, MilkyPixelart.getInstance().getConfig().getInt("pixelarts.previewDuration", 100));
+            }
+            // Create a preview-safe map item to avoid player tracking markers
+            var previewStack = createPreviewMapItem(stack, world);
+            if (previewStack == null) {
+                previewStack = stack;
+            }
+            var finalStack = previewStack;
+            return player.getWorld().spawn(location, GlowItemFrame.class, glowItemFrame -> {
+                glowItemFrame.setPersistent(false);
+                glowItemFrame.setInvulnerable(true);
+                glowItemFrame.setFixed(true);
+                glowItemFrame.setItem(finalStack, false);
+                glowItemFrame.setVisible(false);
+                glowItemFrame.setFacingDirection(face, true);
+                glowItemFrame.getPersistentDataContainer().set(PREVIEW_ART_KEY, PersistentDataType.BYTE, (byte) 1);
+            });
+        }).filter(Objects::nonNull).map(f -> (Entity) f).toList();
 
             MilkyPixelart.getInstance().getServer().getOnlinePlayers().forEach(p -> {
                 if (p.getUniqueId() == player.getUniqueId()) {
@@ -524,6 +523,36 @@ public class PixelartManager extends ArtManager {
             }
         }
         return -1;
+    }
+
+    /**
+     * Creates a preview-safe map item that delegates rendering to the original MapView
+     * but with tracking disabled to prevent player markers from appearing.
+     */
+    private @Nullable ItemStack createPreviewMapItem(@NotNull ItemStack original, @NotNull World world) {
+        if (!(original.getItemMeta() instanceof MapMeta originalMeta)) {
+            return null;
+        }
+        MapView originalView = originalMeta.getMapView();
+        if (originalView == null) {
+            return null;
+        }
+
+        MapView previewView = Bukkit.createMap(world);
+        previewView.setLocked(true);
+        previewView.setTrackingPosition(false);
+        previewView.setUnlimitedTracking(false);
+        
+        // Use delegating renderer that renders original map's content without cursors
+        previewView.getRenderers().forEach(previewView::removeRenderer);
+        previewView.addRenderer(new DelegatingMapRenderer(originalView));
+
+        ItemStack previewItem = original.clone();
+        MapMeta previewMeta = (MapMeta) previewItem.getItemMeta();
+        previewMeta.setMapView(previewView);
+        previewItem.setItemMeta(previewMeta);
+
+        return previewItem;
     }
 
     @Override
