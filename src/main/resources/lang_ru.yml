@@ -29,12 +29,12 @@ scan:
   success: "<#9AFF0F>Найдено <#FFFF99><arg1> <#9AFF0F>копий:"
   item: "<#AEB6C4> - <#FFFF99><hover:show_text:'<#FFFF99>Файл карты, нажмите чтобы скопировать'><click:copy_to_clipboard:'<arg1>'><arg1></click></hover>"
   fail: "<#FF995E>Копии не найдены."
-  fail_no_map: "<#FF995E>Файл указаной карты не найден."
+  fail_no_map: "<#FF995E>Файл указанной карты не найден."
   files_found: "<#9AFF0F>Всего найдено <#FFFF99><arg1> <#9AFF0F>файлов карт. Начинаем сканирования..."
   files_scanned: "<#AEB6C4>Просканировано <#FFFF99><arg1> <#AEB6C4>файлов карт..."
 blacklist:
   add:
-    success: "<#9AFF0F>Вы доабвили карту <#FFFF99><arg1><#9AFF0F> в черный список с ID владельца <#FFFF99><arg2><#9AFF0F>."
+    success: "<#9AFF0F>Вы добавили карту <#FFFF99><arg1><#9AFF0F> в черный список с ID владельца <#FFFF99><arg2><#9AFF0F>."
     fail: "<#FF995E>Не удалось добавить карту <#FFFF99><arg1><#FF995E> в черный список."
   remove:
     success: "<#9AFF0F>Вы убрали карту <#FFFF99><arg1><#9AFF0F> из черного списка."
